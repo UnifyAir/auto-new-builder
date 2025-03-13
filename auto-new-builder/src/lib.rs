@@ -1,0 +1,1 @@
+pub extern crate auto_new_builder_derive;

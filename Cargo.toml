@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2"
+members = [ "auto-new-builder", "auto-new-builder-derive", "example"]
+
+[workspace.dependencies]
+syn = "2.0"
+quote = "1.0"
+proc-macro2 = "1.0"
