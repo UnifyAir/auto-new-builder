@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-auto-new-builder = { git = "https://github.com/UnifyAir/auto-new-builder.git", package = "auto-new-builder", branch = "master" }
+# auto-new-builder = { git = "https://github.com/UnifyAir/auto-new-builder.git", package = "auto-new-builder", branch = "master" }
+auto-new-builder = { path = "../auto-new-builder/" }
