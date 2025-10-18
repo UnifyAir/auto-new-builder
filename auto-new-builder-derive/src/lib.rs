@@ -16,8 +16,6 @@ fn generate_struct(struct_name: Ident, data_struct: DataStruct) -> proc_macro2::
     let mut field_stream = Vec::<proc_macro2::TokenStream>::new();
     let mut with_fn_stream = Vec::<proc_macro2::TokenStream>::new();
 
-    let mut has_optional_fields_started = false;
-
     for field in data_struct.fields {
         let field_name = field.clone().ident.unwrap();
         let field_attr = field.clone().attrs;
@@ -59,7 +57,6 @@ fn generate_struct(struct_name: Ident, data_struct: DataStruct) -> proc_macro2::
                     if last_segment.ident == "Option" {
                         if let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments {
                             if args.args.len() == 1 {
-                                has_optional_fields_started = true;
                                 let inner_type = &args.args[0];
 
                                 if auto_new_value.is_some() {
@@ -99,6 +96,31 @@ fn generate_struct(struct_name: Ident, data_struct: DataStruct) -> proc_macro2::
                         } else {
                             panic!("Invalid Option type format");
                         }
+                    } else {
+                        let field_type = type_path.path;
+                        if auto_new_value.is_some() {
+                            field_stream.push(quote! {
+                                #field_name : #auto_new_value
+                            });
+                            let with_method_name =
+                                syn::Ident::new(&format!("with_{}", field_name), field_name.span());
+
+                            with_fn_stream.push(quote! {
+                                #[inline]
+                                pub fn #with_method_name(mut self, value: #field_type) -> Self {
+                                    self.#field_name = value;
+                                    self
+                                }
+                            });
+                        } else {
+                            new_stream.push(quote! {
+                                #field_name: #field_type
+                            });
+
+                            field_stream.push(quote! {
+                                #field_name : #field_name
+                            });
+                        }
                     }
                 }
             }
@@ -106,42 +128,6 @@ fn generate_struct(struct_name: Ident, data_struct: DataStruct) -> proc_macro2::
                 panic!("Unsupported type in generic");
             }
         };
-
-        if has_optional_fields_started {
-            panic!("Optional Fields should be the at the last")
-        }
-
-        let field_type = match field.ty {
-            Type::Path(type_path) => type_path.path,
-            _ => {
-                panic!("Unsupported type in generic");
-            }
-        };
-
-        if auto_new_value.is_some() {
-            field_stream.push(quote! {
-                #field_name : #auto_new_value
-            });
-            let with_method_name =
-                syn::Ident::new(&format!("with_{}", field_name), field_name.span());
-
-            with_fn_stream.push(quote! {
-                #[inline]
-                pub fn #with_method_name(mut self, value: #field_type) -> Self {
-                    self.#field_name = value;
-                    self
-                }
-            });
-            continue;
-        }
-
-        new_stream.push(quote! {
-            #field_name: #field_type
-        });
-
-        field_stream.push(quote! {
-            #field_name : #field_name
-        });
     }
 
     quote! {
